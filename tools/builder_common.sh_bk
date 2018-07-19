@@ -977,14 +977,11 @@ create_iso_image() {
 
 	FSLABEL=$(echo ${PRODUCT_NAME} | tr '[:lower:]' '[:upper:]')
 	echo "/dev/iso9660/${FSLABEL} / cd9660 ro 0 0" > ${FINAL_CHROOT_DIR}/etc/fstab
-	echo "hw.igb.rxd=2048" >> ${FINAL_CHROOT_DIR}/boot/loader.conf.local
-	echo "hw.igb.txd=2048" >> ${FINAL_CHROOT_DIR}/boot/loader.conf.local
 
 	# This check is for supporting create memstick/ova images
 	echo -n ">>> Running command: script -aq $LOGFILE makefs -t cd9660 -o bootimage=\"i386;${FINAL_CHROOT_DIR}/boot/cdboot \"-o no-emul-boot -o rockridge " | tee -a ${LOGFILE}
 	echo "-o label=${FSLABEL} -o publisher=\"${PRODUCT_NAME} project.\" $ISOPATH ${FINAL_CHROOT_DIR}" | tee -a ${LOGFILE}
-	
-	
+
 	create_distribution_tarball
 
 	# Remove /rescue from iso since cd9660 cannot deal with hardlinks
@@ -1029,9 +1026,7 @@ create_memstick_image() {
 	echo ">>> Creating memstick to ${_image_path}." 2>&1 | tee -a ${LOGFILE}
 	echo "/dev/ufs/${PRODUCT_NAME} / ufs ro 0 0" > ${FINAL_CHROOT_DIR}/etc/fstab
 	echo "kern.cam.boot_delay=10000" >> ${FINAL_CHROOT_DIR}/boot/loader.conf.local
-	echo "hw.igb.rxd=2048" >> ${FINAL_CHROOT_DIR}/boot/loader.conf.local
-	echo "hw.igb.txd=2048" >> ${FINAL_CHROOT_DIR}/boot/loader.conf.local
-	
+
 	create_distribution_tarball
 
 	makefs -B little -o label=${PRODUCT_NAME},version=2 ${_image_path} ${FINAL_CHROOT_DIR}
@@ -1070,8 +1065,6 @@ create_memstick_serial_image() {
 
 	echo "/dev/ufs/${PRODUCT_NAME} / ufs ro 0 0" > ${FINAL_CHROOT_DIR}/etc/fstab
 	echo "kern.cam.boot_delay=10000" >> ${FINAL_CHROOT_DIR}/boot/loader.conf.local
-	echo "hw.igb.rxd=2048" >> ${FINAL_CHROOT_DIR}/boot/loader.conf.local
-	echo "hw.igb.txd=2048" >> ${FINAL_CHROOT_DIR}/boot/loader.conf.local
 
 	echo ">>> Creating serial memstick to ${MEMSTICKSERIALPATH}." 2>&1 | tee -a ${LOGFILE}
 
@@ -1132,8 +1125,6 @@ create_memstick_adi_image() {
 
 	echo "/dev/ufs/${PRODUCT_NAME} / ufs ro 0 0" > ${FINAL_CHROOT_DIR}/etc/fstab
 	echo "kern.cam.boot_delay=10000" >> ${FINAL_CHROOT_DIR}/boot/loader.conf.local
-	echo "hw.igb.rxd=2048" >> ${FINAL_CHROOT_DIR}/boot/loader.conf.local
-	echo "hw.igb.txd=2048" >> ${FINAL_CHROOT_DIR}/boot/loader.conf.local
 
 	echo ">>> Creating serial memstick to ${MEMSTICKADIPATH}." 2>&1 | tee -a ${LOGFILE}
 
@@ -1588,14 +1579,14 @@ pkg_repo_rsync() {
 		if [ -n "${_IS_RELEASE}" -o "${_repo_path_param}" = "${CORE_PKG_PATH}" ]; then
 			for _pkg_final_rsync_hostname in ${PKG_FINAL_RSYNC_HOSTNAME}; do
 				# Send .real* directories first to prevent having a broken repo while transfer happens
-				local _cmd="rsync -Have \"ssh -vv -i /root/.ssh/id_rsa -p ${PKG_FINAL_RSYNC_SSH_PORT}\" \
+				local _cmd="rsync -Have \"ssh -i /root/.ssh/id_rsa -p ${PKG_FINAL_RSYNC_SSH_PORT} -o StrictHostKeyChecking=no\" \
 					--timeout=120  ${PKG_RSYNC_DESTDIR}/./${_repo_base%%-core}* \
 					--include=\"/*\" --include=\"*/.real*\" --include=\"*/.real*/***\" \
 					--exclude=\"*\" \
 					${PKG_FINAL_RSYNC_USERNAME}@${_pkg_final_rsync_hostname}:${PKG_FINAL_RSYNC_DESTDIR}"
 
 				echo -n ">>> Sending updated packages to ${_pkg_final_rsync_hostname}... " | tee -a ${_logfile}
-				if script -aq ${_logfile} ssh -p ${PKG_RSYNC_SSH_PORT} \
+				if script -aq ${_logfile} ssh -p ${PKG_RSYNC_SSH_PORT} -o StrictHostKeyChecking=no \
 					${PKG_RSYNC_USERNAME}@${_pkg_rsync_hostname} ${_cmd}; then
 					echo "Done!" | tee -a ${_logfile}
 				else
@@ -1604,7 +1595,7 @@ pkg_repo_rsync() {
 					print_error_pfS
 				fi
 
-				_cmd="rsync -Have \"ssh -i /root/.ssh/id_rsa -p ${PKG_FINAL_RSYNC_SSH_PORT}\" \
+				_cmd="rsync -Have \"ssh -p ${PKG_FINAL_RSYNC_SSH_PORT}\" \
 					--timeout=60 --delete-delay ${PKG_RSYNC_DESTDIR}/./${_repo_base%%-core}* \
 					${PKG_FINAL_RSYNC_USERNAME}@${_pkg_final_rsync_hostname}:${PKG_FINAL_RSYNC_DESTDIR}"
 
